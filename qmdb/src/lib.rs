@@ -400,10 +400,17 @@ impl AdsCore {
     ) {
         let (data_dir, meta_dir, _indexer_dir) = Self::get_sub_dirs(dir);
 
-        if Path::new(dir).exists() {
-            fs::remove_dir_all(dir).unwrap();
+        // If the data directory already exists with content, this database
+        // has been initialized before.  Skip re-initialization to preserve
+        // existing data.  Callers that truly need a fresh database should
+        // remove the directory themselves before calling init_dir.
+        if Path::new(&data_dir).exists() {
+            return;
         }
-        fs::create_dir(dir).unwrap();
+
+        if !Path::new(dir).exists() {
+            fs::create_dir(dir).unwrap();
+        }
         let (mut ciphers, _, meta_db_cipher) = get_ciphers(aes_keys);
         let mut meta = MetaDB::with_dir(&meta_dir, meta_db_cipher);
         for shard_id in 0..SHARD_COUNT {
